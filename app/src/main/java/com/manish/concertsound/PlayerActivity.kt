@@ -511,4 +511,232 @@ class PlayerActivity : Activity() {
         list.overScrollMode = View.OVER_SCROLL_NEVER
         list.clipToPadding = false
         list.setPadding(0, dp(8), 0, dp(120))
-       
+        page.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
+        rootFrame.addView(page, FrameLayout.LayoutParams(-1, -1))
+
+        // mini player (glass)
+        mini = GlassLayout(this, page)
+        mini.orientation = LinearLayout.HORIZONTAL
+        mini.gravity = Gravity.CENTER_VERTICAL
+        mini.setPadding(dp(10), dp(8), dp(14), dp(8))
+        mini.visibility = View.GONE
+        miniImg = ImageView(this)
+        miniImg.scaleType = ImageView.ScaleType.CENTER_CROP
+        miniImg.background = shape(Pal.LINE, 22)
+        miniImg.clipToOutline = true
+        mini.addView(miniImg, LinearLayout.LayoutParams(dp(48), dp(48)))
+        val mcol = LinearLayout(this)
+        mcol.orientation = LinearLayout.VERTICAL
+        miniTitle = tv("", 15f, Pal.TEXT, "sans-serif-medium")
+        miniTitle.maxLines = 1
+        miniTitle.ellipsize = TextUtils.TruncateAt.END
+        miniArtist = tv("", 12f, Pal.MUTE)
+        miniArtist.maxLines = 1
+        miniArtist.ellipsize = TextUtils.TruncateAt.END
+        mcol.addView(miniTitle)
+        mcol.addView(miniArtist)
+        val mcl = LinearLayout.LayoutParams(0, -2, 1f)
+        mcl.leftMargin = dp(12)
+        mini.addView(mcol, mcl)
+        miniPlay = IconView(this, 0, Pal.TEXT)
+        miniPlay.setOnClickListener {
+            val c = controller
+            if (c != null) { if (c.isPlaying) c.pause() else c.play() }
+        }
+        press(miniPlay)
+        mini.addView(miniPlay, LinearLayout.LayoutParams(dp(46), dp(46)))
+        val miniNext = IconView(this, 2, Pal.TEXT)
+        miniNext.setOnClickListener { controller?.seekToNext() }
+        press(miniNext)
+        mini.addView(miniNext, LinearLayout.LayoutParams(dp(46), dp(46)))
+        mini.setOnClickListener { openFull() }
+        val mlp = FrameLayout.LayoutParams(-1, dp(68), Gravity.BOTTOM)
+        mlp.setMargins(dp(14), 0, dp(14), dp(24))
+        rootFrame.addView(mini, mlp)
+
+        buildFull(rootFrame)
+        setContentView(rootFrame)
+
+        // permissions, then library
+        val need = ArrayList<String>()
+        if (Build.VERSION.SDK_INT >= 33) {
+            need.add("android.permission.READ_MEDIA_AUDIO")
+            need.add("android.permission.POST_NOTIFICATIONS")
+        } else {
+            need.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        val missing = need.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isEmpty()) loadSongs() else requestPermissions(missing.toTypedArray(), 7)
+
+        // connect to playback service
+        val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+        val f = MediaController.Builder(this, token).buildAsync()
+        future = f
+        f.addListener({
+            try {
+                val c = f.get()
+                controller = c
+                c.addListener(object : Player.Listener {
+                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) { updateNow() }
+                    override fun onIsPlayingChanged(isPlaying: Boolean) { updateIcons() }
+                    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) { updateModes() }
+                    override fun onRepeatModeChanged(repeatMode: Int) { updateModes() }
+                })
+                updateNow()
+            } catch (e: Exception) {}
+        }, Executor { r -> ui.post(r) })
+
+        ui.post(ticker)
+
+        // entrance animation
+        for (i in 0 until page.childCount) {
+            val v = page.getChildAt(i)
+            v.alpha = 0f
+            v.translationY = dp(30).toFloat()
+            v.animate().alpha(1f).translationY(0f).setStartDelay(i * 70L).setDuration(650)
+                .setInterpolator(DecelerateInterpolator(2f)).start()
+        }
+    }
+
+    private fun buildFull(rootFrame: FrameLayout) {
+        full = LinearLayout(this)
+        full.orientation = LinearLayout.VERTICAL
+        full.setPadding(dp(26), dp(44), dp(26), dp(36))
+        fullBg = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(Pal.BG, Pal.BG))
+        full.background = fullBg
+        full.visibility = View.INVISIBLE
+        full.isClickable = true
+
+        val handleBox = FrameLayout(this)
+        val handle = View(this)
+        handle.background = shape(Color.argb(110, 255, 255, 255), 3)
+        handleBox.addView(handle, FrameLayout.LayoutParams(dp(44), dp(5), Gravity.CENTER))
+        handleBox.setOnClickListener { closeFull() }
+        full.addView(handleBox, LinearLayout.LayoutParams(-1, dp(30)))
+
+        val side = resources.displayMetrics.widthPixels - dp(52)
+        fullImg = ImageView(this)
+        fullImg.scaleType = ImageView.ScaleType.CENTER_CROP
+        fullImg.background = shape(Pal.LINE, 22)
+        fullImg.clipToOutline = true
+        val ip = LinearLayout.LayoutParams(side, side)
+        ip.topMargin = dp(16)
+        full.addView(fullImg, ip)
+
+        val trow = LinearLayout(this)
+        trow.orientation = LinearLayout.HORIZONTAL
+        trow.gravity = Gravity.CENTER_VERTICAL
+        val tcol = LinearLayout(this)
+        tcol.orientation = LinearLayout.VERTICAL
+        fullTitle = tv("", 24f, Pal.TEXT, "sans-serif-medium")
+        fullTitle.maxLines = 1
+        fullTitle.ellipsize = TextUtils.TruncateAt.END
+        fullArtist = tv("", 16f, Pal.MUTE)
+        fullArtist.maxLines = 1
+        fullArtist.ellipsize = TextUtils.TruncateAt.END
+        tcol.addView(fullTitle)
+        tcol.addView(fullArtist)
+        trow.addView(tcol, LinearLayout.LayoutParams(0, -2, 1f))
+        fullStar = tv("★", 28f, Pal.MUTE)
+        fullStar.setPadding(dp(12), dp(6), dp(0), dp(6))
+        fullStar.setOnClickListener {
+            songs.firstOrNull { it.id == currentId }?.let { toggleLike(it) }
+        }
+        trow.addView(fullStar)
+        val trp = LinearLayout.LayoutParams(-1, -2)
+        trp.topMargin = dp(26)
+        full.addView(trow, trp)
+
+        slim = Slim(this, 0, 1000) { v ->
+            val c = controller
+            if (c != null && c.duration > 0) c.seekTo(v * c.duration / 1000)
+        }
+        slim.setOnTouchListener { _, e ->
+            when (e.action) {
+                MotionEvent.ACTION_DOWN -> seeking = true
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> seeking = false
+            }
+            false
+        }
+        val slp = LinearLayout.LayoutParams(-1, -2)
+        slp.topMargin = dp(14)
+        full.addView(slim, slp)
+
+        val times = LinearLayout(this)
+        times.orientation = LinearLayout.HORIZONTAL
+        tPos = tv("0:00", 12f, Pal.MUTE)
+        tDur = tv("0:00", 12f, Pal.MUTE)
+        tDur.gravity = Gravity.END
+        times.addView(tPos, LinearLayout.LayoutParams(0, -2, 1f))
+        times.addView(tDur, LinearLayout.LayoutParams(0, -2, 1f))
+        times.setPadding(dp(14), 0, dp(14), 0)
+        full.addView(times, LinearLayout.LayoutParams(-1, -2))
+
+        val ctr = LinearLayout(this)
+        ctr.orientation = LinearLayout.HORIZONTAL
+        ctr.gravity = Gravity.CENTER
+        val prev = IconView(this, 3, Pal.TEXT)
+        prev.setOnClickListener { controller?.seekToPrevious() }
+        press(prev)
+        ctr.addView(prev, LinearLayout.LayoutParams(dp(64), dp(64)))
+        fullPlay = IconView(this, 0, Pal.BG)
+        fullPlay.background = shape(Pal.TEXT, 44)
+        fullPlay.setOnClickListener {
+            val c = controller
+            if (c != null) { if (c.isPlaying) c.pause() else c.play() }
+        }
+        press(fullPlay)
+        val pl = LinearLayout.LayoutParams(dp(88), dp(88))
+        pl.leftMargin = dp(18)
+        pl.rightMargin = dp(18)
+        ctr.addView(fullPlay, pl)
+        val next = IconView(this, 2, Pal.TEXT)
+        next.setOnClickListener { controller?.seekToNext() }
+        press(next)
+        ctr.addView(next, LinearLayout.LayoutParams(dp(64), dp(64)))
+        val cp = LinearLayout.LayoutParams(-1, -2)
+        cp.topMargin = dp(22)
+        full.addView(ctr, cp)
+
+        val modes = LinearLayout(this)
+        modes.orientation = LinearLayout.HORIZONTAL
+        modes.gravity = Gravity.CENTER
+        chipShuffle = tv("Shuffle", 14f, Pal.TEXT, "sans-serif-medium")
+        chipRepeat = tv("Repeat off", 14f, Pal.TEXT, "sans-serif-medium")
+        for (ch in listOf(chipShuffle, chipRepeat)) {
+            ch.setPadding(dp(20), dp(10), dp(20), dp(10))
+            val l = LinearLayout.LayoutParams(-2, -2)
+            l.leftMargin = dp(6)
+            l.rightMargin = dp(6)
+            modes.addView(ch, l)
+            press(ch)
+        }
+        chipShuffle.setOnClickListener { controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled } }
+        chipRepeat.setOnClickListener {
+            controller?.let {
+                it.repeatMode = when (it.repeatMode) {
+                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                    else -> Player.REPEAT_MODE_OFF
+                }
+            }
+        }
+        val mp = LinearLayout.LayoutParams(-1, -2)
+        mp.topMargin = dp(26)
+        full.addView(modes, mp)
+
+        rootFrame.addView(full, FrameLayout.LayoutParams(-1, -1))
+    }
+
+    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, res: IntArray) {
+        super.onRequestPermissionsResult(code, perms, res)
+        loadSongs()
+    }
+
+    override fun onDestroy() {
+        ui.removeCallbacks(ticker)
+        future?.let { MediaController.releaseFuture(it) }
+        pool.shutdown()
+        super.onDestroy()
+    }
+}
