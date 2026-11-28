@@ -251,12 +251,17 @@ class PlayerActivity : Activity() {
         updateNow()
     }
 
-    private fun paintChips() {
+        private fun paintChips() {
         chipAll.background = shape(if (!onlyLiked) Pal.TEXT else Pal.SURF, 20, Pal.LINE)
         chipAll.setTextColor(if (!onlyLiked) Pal.BG else Pal.MUTE)
         chipLiked.background = shape(if (onlyLiked) Pal.TEXT else Pal.SURF, 20, Pal.LINE)
         chipLiked.setTextColor(if (onlyLiked) Pal.BG else Pal.MUTE)
-    }
+        val pl = openPlaylist != null
+        chipPlaylists.text = openPlaylist?.let { if (it.length > 12) it.take(11) + "…" else it } ?: "Playlists"
+        chipPlaylists.background = shape(if (pl) Pal.TEXT else Pal.SURF, 20, Pal.LINE)
+        chipPlaylists.setTextColor(if (pl) Pal.BG else Pal.MUTE)
+        }
+        
 
     inner class Adapter : BaseAdapter() {
         override fun getCount() = shown.size
