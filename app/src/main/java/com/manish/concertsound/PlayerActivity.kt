@@ -123,8 +123,10 @@ class PlayerActivity : Activity() {
     private lateinit var tDur: TextView
     private lateinit var chipShuffle: TextView
     private lateinit var chipRepeat: TextView
-    private var fullOpen = false
-
+        private var fullOpen = false
+    private var openPlaylist: String? = null
+    private lateinit var chipPlaylists: TextView
+    
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
     private fun shape(color: Int, r: Int, stroke: Int = 0): GradientDrawable {
