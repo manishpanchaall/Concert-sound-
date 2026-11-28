@@ -154,7 +154,8 @@ object PlaylistDialogs {
         box.setPadding(dp(a, 4), dp(a, 6), dp(a, 4), dp(a, 6))
 
         var dlg: AlertDialog? = null
-        val close = { dlg?.dismiss() }
+                val close: () -> Unit = { dlg?.dismiss() }
+                
         val refresh = {
             dlg?.dismiss()
             showManager(a, onOpen, onPlay)
