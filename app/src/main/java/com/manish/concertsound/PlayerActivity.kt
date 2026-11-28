@@ -486,8 +486,16 @@ class PlayerActivity : Activity() {
             chips.addView(ch, l)
             press(ch)
         }
-        chipAll.setOnClickListener { onlyLiked = false; paintChips(); refilter() }
-        chipLiked.setOnClickListener { onlyLiked = true; paintChips(); refilter() }
+                chipAll.setOnClickListener { onlyLiked = false; openPlaylist = null; paintChips(); refilter() }
+        chipLiked.setOnClickListener { onlyLiked = true; openPlaylist = null; paintChips(); refilter() }
+        chipPlaylists.setOnClickListener {
+            PlaylistDialogs.showManager(
+                this,
+                onOpen = { name -> openPlaylist = name; paintChips(); refilter() },
+                onPlay = { name -> playPlaylist(name) }
+            )
+        }
+        
         paintChips()
         val cp = LinearLayout.LayoutParams(-1, -2)
         cp.topMargin = dp(12)
