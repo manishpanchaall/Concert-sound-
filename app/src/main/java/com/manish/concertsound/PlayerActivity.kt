@@ -230,15 +230,18 @@ class PlayerActivity : Activity() {
         }.start()
     }
 
-    private fun refilter() {
+        private fun refilter() {
         val q = query.trim().lowercase()
+        val keep = openPlaylist?.let { PlaylistStore.songsOf(this, it) }
         shown = songs.filter {
-            (!onlyLiked || liked.contains(it.id.toString())) &&
+            (keep == null || keep.contains(it.id.toString())) &&
+                (!onlyLiked || liked.contains(it.id.toString())) &&
                 (q.isEmpty() || it.title.lowercase().contains(q) || it.artist.lowercase().contains(q))
         }
         adapter.notifyDataSetChanged()
         empty.visibility = if (shown.isEmpty()) View.VISIBLE else View.GONE
-    }
+        }
+        
 
     private fun toggleLike(s: Song) {
         val k = s.id.toString()
