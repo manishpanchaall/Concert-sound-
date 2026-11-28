@@ -331,12 +331,26 @@ class PlayerActivity : Activity() {
                         .setTitle(s.title).setArtist(s.artist).setArtworkUri(s.artUri).build()
                 ).build()
         }
-        c.setMediaItems(items, index, 0L)
+               c.setMediaItems(items, index, 0L)
         c.prepare()
         c.play()
     }
 
+    private fun playPlaylist(name: String) {
+        val keep = PlaylistStore.songsOf(this, name)
+        val list = songs.filter { keep.contains(it.id.toString()) }
+        if (list.isEmpty()) {
+            Toast.makeText(this, "Is playlist me koi gaana nahi hai.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        openPlaylist = name
+        paintChips()
+        refilter()
+        playAt(list, 0)
+    }
+
     private fun updateIcons() {
+        
         val playing = controller?.isPlaying == true
         miniPlay.set(if (playing) 1 else 0)
         fullPlay.set(if (playing) 1 else 0)
