@@ -516,8 +516,14 @@ class PlayerActivity : Activity() {
         ep.topMargin = dp(24)
         page.addView(empty, ep)
 
-        val list = ListView(this)
+                val list = ListView(this)
         list.adapter = adapter
+        list.setOnItemLongClickListener { _, _, pos, _ ->
+            val s = shown[pos]
+            PlaylistDialogs.addToPlaylist(this, s.id.toString(), s.title)
+            true
+        }
+        
         list.setOnScrollListener(object : AbsListView.OnScrollListener {
             override fun onScrollStateChanged(v: AbsListView?, s: Int) {}
             override fun onScroll(v: AbsListView?, a: Int, b: Int, c: Int) {
