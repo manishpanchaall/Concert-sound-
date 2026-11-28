@@ -476,8 +476,10 @@ class PlayerActivity : Activity() {
         val chips = LinearLayout(this)
         chips.orientation = LinearLayout.HORIZONTAL
         chipAll = tv("All", 14f, Pal.MUTE, "sans-serif-medium")
-        chipLiked = tv("Liked", 14f, Pal.MUTE, "sans-serif-medium")
-        for (ch in listOf(chipAll, chipLiked)) {
+                chipLiked = tv("Liked", 14f, Pal.MUTE, "sans-serif-medium")
+        chipPlaylists = tv("Playlists", 14f, Pal.MUTE, "sans-serif-medium")
+        for (ch in listOf(chipAll, chipLiked, chipPlaylists)) {
+            
             ch.setPadding(dp(18), dp(8), dp(18), dp(8))
             val l = LinearLayout.LayoutParams(-2, -2)
             l.rightMargin = dp(8)
